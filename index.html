@@ -93,6 +93,11 @@
         .advice-box strong { color: #fff; background: var(--gold-dark); padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 6px; }
         
         .formula-log { font-size: 11px; color: var(--muted); background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-top: 14px; line-height: 1.5; border: 1px solid rgba(255,255,255,0.02); }
+        .modern-reading { background: rgba(100,216,203,0.035); border-right: 1px solid rgba(100,216,203,0.10); }
+        .modern-reading p { color:#edf8f5; line-height:1.8; }
+        .modern-reading .modern-label { color:#64d8cb; font-weight:800; }
+        .modern-reading .modern-question { color:#fff; font-weight:700; }
+
     </style>
 </head>
 <body>
@@ -154,6 +159,10 @@
             <div class="advice-box" id="whatToReadBox"></div>
             <div class="advice-box" id="courseRuleBox"></div>
             <div class="advice-box" id="bukjinOneLine"></div>
+            <div class="reading-block modern-reading" id="modernReadingBox" style="margin-top:16px; border-left-color:#64d8cb;">
+                <h3 style="color:#64d8cb;">🌿 현대적 해석</h3>
+                <p id="modernReadingText"></p>
+            </div>
             <div class="formula-log" id="formulaLog"></div>
             <div class="advice-box" id="bookReferenceBox"></div>
         </div>
@@ -952,6 +961,95 @@
         return `동효가 6개이므로 <strong>지괘 「${changeGuaData[1]}」의 괘사</strong>로 해석합니다.`;
     }
 
+
+    // 질문 문장을 간단히 분류하여 같은 괘라도 현실 적용 문장을 달리한다.
+    // 점단의 근거는 본괘·동효 수·지괘에 두고, 질문 분류는 표현을 현실화하는 용도로만 사용한다.
+    function detectQuestionCategory(question) {
+        const q = (question || "").toLowerCase();
+        const rules = [
+            ["금전·수익", ["돈","금전","수익","매출","리워드","인센티브","정산","투자","재물","급여","월급","보상"]],
+            ["직장·사업", ["직장","회사","사업","업무","이직","퇴사","임원","승진","계약","프로젝트","고객","템플릿","성과"]],
+            ["시험·학업", ["시험","합격","공부","학업","과제","퀴즈","성적","학교","자격증"]],
+            ["연애·관계", ["연애","사랑","남자","여자","남편","아내","배우자","관계","마음","재회","결혼","친구"]],
+            ["건강", ["건강","병","치료","수술","회복","몸","통증"]],
+            ["이동·여행", ["여행","이사","이동","출국","귀국","출장","여행지"]]
+        ];
+        for (const [name, words] of rules) {
+            if (words.some(w => q.includes(w))) return name;
+        }
+        return "일반";
+    }
+
+    function getQuestionFocus(category) {
+        const map = {
+            "금전·수익": "금액 자체를 단정하기보다 실제 수익이 발생하는 조건, 정산 시점, 누락 여부를 확인하세요.",
+            "직장·사업": "성과만 보지 말고 실행 조건·상대 반응·절차상 누락까지 함께 확인하는 것이 중요합니다.",
+            "시험·학업": "운에 기대기보다 현재 준비 수준과 취약 부분을 확인하고, 남은 시간의 행동으로 결과를 보완하세요.",
+            "연애·관계": "상대의 마음을 단정하기보다 실제 말과 행동, 관계의 변화 속도를 함께 살피는 것이 좋습니다.",
+            "건강": "괘는 의료 판단을 대신하지 않습니다. 몸의 변화는 실제 증상과 전문적인 진료를 기준으로 확인하세요.",
+            "이동·여행": "일정·예약·비용·교통처럼 현실 조건을 확인하면서 변화 가능성에 대비하세요.",
+            "일반": "결과를 단정하기보다 현재 조건, 변화가 일어나는 지점, 이후 방향을 순서대로 확인하세요."
+        };
+        return map[category] || map["일반"];
+    }
+
+    function getMovementReading(mainGuaData, changeGuaData, movingRows) {
+        const n = movingRows.length;
+        const names = movingRows.map(r => hyoNameList[r]);
+
+        if (n === 0) {
+            return `뚜렷한 변효가 없으므로 지금은 특정 사건의 급변보다 <strong>${mainGuaData[1]}</strong>이 보여주는 현재 구조가 오래 작용하는 쪽에 가깝습니다.`;
+        }
+        if (n === 1) {
+            return `<strong>${names[0]}</strong> 한 곳이 변곡점입니다. 현재 상황 전체를 뒤집기보다 이 지점에서 생기는 선택이나 사건이 이후 <strong>${changeGuaData[1]}</strong>의 흐름을 여는 핵심이 됩니다.`;
+        }
+        if (n === 2) {
+            const upper = Math.max(...movingRows);
+            return `<strong>${names.join(" · ")}</strong> 두 곳에서 변화가 일어납니다. 두 변화가 함께 작용하되 점단 기준상 <strong>${hyoNameList[upper]}</strong>의 변화에 조금 더 무게를 두고, 과정이 <strong>${changeGuaData[1]}</strong>으로 넘어가는지를 살핍니다.`;
+        }
+        if (n === 3) {
+            return `현재와 이후의 힘이 비슷하게 맞물리는 전환기입니다. <strong>${mainGuaData[1]}</strong>의 현재 조건과 <strong>${changeGuaData[1]}</strong>의 이후 방향을 함께 비교해야 합니다.`;
+        }
+        if (n === 4) {
+            return `변화의 폭이 큰 편입니다. 기존 상황을 그대로 유지하기보다 <strong>${changeGuaData[1]}</strong> 쪽으로 판이 바뀌는 과정에서 무엇이 끝까지 남는지를 보는 것이 중요합니다.`;
+        }
+        if (n === 5) {
+            return `거의 전면적인 변화입니다. 현재보다 <strong>${changeGuaData[1]}</strong>의 상황이 현실 판단에 더 가까워지며, 변하지 않은 한 효가 마지막 기준점이 됩니다.`;
+        }
+        return `여섯 효가 모두 움직여 상황 전환의 폭이 매우 큽니다. 현재 모습에 집착하기보다 점단 규칙에 따라 변화 뒤의 방향을 중심으로 판단합니다.`;
+    }
+
+    function buildModernReading(mainGuaData, changeGuaData, movingRows) {
+        const q = (castingQuestion || "").trim();
+        const category = detectQuestionCategory(q);
+        const mainMeaning = guaMeaningDB[mainGuaData[0]] || "";
+        const changeMeaning = guaMeaningDB[changeGuaData[0]] || "";
+        const movement = getMovementReading(mainGuaData, changeGuaData, movingRows);
+        const hasChange = movingRows.length > 0;
+
+        let html = "";
+        if (q) {
+            html += `<span class="modern-label">질문</span> <span class="modern-question">${escapeHtml(q)}</span><br><br>`;
+        }
+        html += `<span class="modern-label">① 현재 상황</span><br>${mainMeaning}<br><br>`;
+        html += `<span class="modern-label">② 변화의 핵심</span><br>${movement}<br><br>`;
+
+        if (hasChange) {
+            html += `<span class="modern-label">③ 이후 방향</span><br>${changeMeaning}<br><br>`;
+        } else {
+            html += `<span class="modern-label">③ 이후 방향</span><br>별도의 지괘가 없으므로 당분간 본괘의 성격이 계속된다고 보고, 현재 조건을 어떻게 다루는지가 핵심입니다.<br><br>`;
+        }
+
+        html += `<span class="modern-label">④ 현실 적용 · ${category}</span><br>${getQuestionFocus(category)}<br><br>`;
+        html += `<span class="modern-label">한줄 통변</span><br>`;
+        if (hasChange) {
+            html += `지금은 <strong>${mainGuaData[1]}</strong>의 상황에서 변곡점을 지나 <strong>${changeGuaData[1]}</strong>의 방향으로 움직이는 과정입니다. 결과를 미리 단정하기보다 실제 변화가 어느 지점에서 나타나는지 확인하면서 대응하는 것이 좋습니다.`;
+        } else {
+            html += `지금은 <strong>${mainGuaData[1]}</strong>의 전체 뜻이 중심입니다. 급한 결론보다 현재 상황의 핵심 조건을 유지·조정하는 것이 중요합니다.`;
+        }
+        return html;
+    }
+
     function renderCoinOutput(upGua, lowGua, chgUpGua, chgLowGua, mainFullKey, changeFullKey, movingRows) {
         const mainKey = lowGua.id + "-" + upGua.id;
         const mainGuaData = name64DB[mainKey] || [64, "화수미제(火水未濟)", "火水未濟"];
@@ -1046,6 +1144,11 @@
             `0개 → 본괘 괘사 · 1개 → 본괘 해당 효사 · 2개 → 본괘 두 효사(위 효 主) · ` +
             `3개 → 본괘·지괘 괘사 · 4개 → 지괘 불변효 2개(아래 효 主) · ` +
             `5개 → 지괘 불변효 1개 · 6개 → 건 용구·곤 용육·그 외 지괘 괘사</span>`;
+
+        const modernText = document.getElementById("modernReadingText");
+        if (modernText) {
+            modernText.innerHTML = buildModernReading(mainGuaData, changeGuaData, movingRows);
+        }
 
         document.getElementById("formulaLog").innerHTML =
             `• <strong>척전법 기록:</strong> ${lineLog}<br>• 동효 수: <strong>${movingRows.length}개</strong><br>• 점단 선택 규칙: 변효 수에 따른 점단 기준 적용`;
